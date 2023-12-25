@@ -1,11 +1,17 @@
-use std::{error::Error, fs};
+use std::{env, error::Error, fs};
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     // ? will return the error
     let content = fs::read_to_string(config.file_path)?;
 
-    for line in search(&config.query, &content) {
-        println!("{line}");
+    if config.ignore_case {
+        for line in search_case_insensitive(&config.query, &content) {
+            println!("{line}");
+        }
+    } else {
+        for line in search(&config.query, &content) {
+            println!("{line}");
+        }
     }
 
     // no need to return the value if success, just need error management
@@ -15,6 +21,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 pub struct Config {
     pub query: String,
     pub file_path: String,
+    pub ignore_case: bool,
 }
 
 impl Config {
@@ -26,9 +33,15 @@ impl Config {
         // store arguments in variables
         let query = args[1].clone();
         let file_path = args[2].clone();
+        // get ignore_case from env var
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
 
         // if no error, return the Config struct
-        Ok(Config { query, file_path })
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
     }
 }
 
@@ -51,6 +64,22 @@ pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
     results
 }
 
+pub fn search_case_insensitive<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+
+    for line in content.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line)
+        }
+    }
+    results
+}
+
+//
+//
+//
+//
 //
 // TDD
 //
@@ -60,13 +89,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_result() {
+    fn case_sensitive() {
         let query = "duct";
         let content = "\
 Rust:
 safe, fast, productive.
-Pick three.";
+Pick three.
+Duct tape.";
         // assertion for testing
         assert_eq!(vec!["safe, fast, productive."], search(query, content));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let content = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+        // assertion for testing
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, content)
+        );
     }
 }
