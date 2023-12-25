@@ -1,4 +1,5 @@
-use std::{env, error::Error, fs, process};
+use minigrep::Config;
+use std::{env, process};
 
 fn main() {
     // store arguments in vector
@@ -12,43 +13,9 @@ fn main() {
         process::exit(1);
     });
 
-    println!("DEBUG for query: {}", config.query);
-
     // get content in file
-    if let Err(e) = run(config) {
+    if let Err(e) = minigrep::run(config) {
         println!("Application error: {e}");
         process::exit(1);
-    }
-}
-
-fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    // ? will return the error
-    let contents = fs::read_to_string(config.file_path)?;
-    println!("With content: \n{}", contents);
-
-    // no need to return the value if success, just need error management
-    Ok(())
-}
-
-struct Config {
-    query: String,
-    file_path: String,
-}
-
-impl Config {
-    fn build(args: &[String]) -> Result<Config, &'static str> {
-        // error handling: return error if not enough arguments, return Config else
-        if args.len() < 3 {
-            return Err("Not enough arguments");
-        }
-        // store arguments in variables
-        let query = args[1].clone();
-        let file_path = args[2].clone();
-        //
-        println!("Searching for {}", query);
-        println!("In file {}", file_path);
-
-        // if no error, return the Config struct
-        Ok(Config { query, file_path })
     }
 }
