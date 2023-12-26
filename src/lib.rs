@@ -25,14 +25,21 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        // don't get the first element in the iterator
+        args.next();
         // error handling: return error if not enough arguments, return Config else
-        if args.len() < 3 {
-            return Err("Not enough arguments");
-        }
         // store arguments in variables
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+        let query = match args.next() {
+            // if next exist, return the value
+            Some(arg) => arg,
+            // else display error message
+            None => return Err("Didn't get query parameter"),
+        };
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get file path"),
+        };
         // get ignore_case from env var
         let ignore_case = env::var("IGNORE_CASE").is_ok();
 
@@ -48,20 +55,27 @@ impl Config {
 // 'a: lifetime of the return value, which is bound to the content
 // (return value is a part of content, so need to keep content alive until the end)
 pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-
-    // 1. iterate through each line of content
-    for line in content.lines() {
-        // 2. check if query present in line
-        if line.contains(query) {
-            // 3. if yes => add it to the list of returned values
-            results.push(line);
-        }
-        // 4. if no => do nothing
-    }
-
-    // 5. return list of values
-    results
+    // let mut results = Vec::new();
+    //
+    // // 1. iterate through each line of content
+    // for line in content.lines() {
+    //     // 2. check if query present in line
+    //     if line.contains(query) {
+    //         // 3. if yes => add it to the list of returned values
+    //         results.push(line);
+    //     }
+    //     // 4. if no => do nothing
+    // }
+    //
+    // // 5. return list of values
+    // results
+    //
+    // same with iterators (no ; => return value)
+    //
+    content
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
